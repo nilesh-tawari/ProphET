@@ -10,6 +10,7 @@ use lib "$FindBin::Bin/UTILS.dir/GFFLib";
 
 use GFFFile;
 
+use Try::Tiny;
 
 =head1 NAME
 
@@ -190,9 +191,20 @@ my $usage = "ProphET_standalone.pl <fasta file> <gff file> <output_name> ";
 
 # Get the scaffold IDs from the gff
 
-
 my $gff_handler = GFFFile::new($gff_in);
-$gff_handler->read();
+
+try {
+   $gff_handler->read();                                                                                                                                                                         
+}
+catch {                                                                                                                                                                                         
+    warn "caught error: $_";                                                                                                                                                                      
+    my @args = ("$UTILS_DIR/GFFLib/gff_rewrite.pl", "--input", "$gff_in", "--output", "$outdir/reformat.gff", "--add_missing_features");                                                                
+    system(@args) == 0                                                                                                                                                                            
+        or die "system @args failed: $?";                                                                                                                                                         
+    my $gff_handler = GFFFile::new("$outdir/reformat.gff");                                                                                                                                             
+    $gff_handler->read();
+    $gff_in = "$outdir/reformat.gff"
+};
 my @scaffold_ids = $gff_handler->get_chrom_names();
 
 #################
